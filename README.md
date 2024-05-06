@@ -44,21 +44,21 @@ Examples of code used for data quality checks will be provided from Databricks n
 
 Assuming that this data would be used primarily for reporting purposes, a star schema with dimensions and facts would be more relevant. Proposed tables include `DimCustomer`, `DimLoan`, and `FactTransaction`. This will help with performance, and the ETL process will be used to transform the data from the normalized database to the star schema.
 
-*TODO: Add a diagram or a notebook with `DESCRIBE` and sample data.*
+* In the repository, I have attached some screenshots and pdfs of notebooks that i wrote in  Sql
 
 ## 4. File Processing
 
 ### Ensuring Expected File Arrival Times and Formats
 
 **Using Event-Based Triggers in Azure Data Factory (ADF)**:
-- Set up: Create a Storage Service account, upload CSV files to Azure Blob Storage.
-- Configure ADF to use event-based triggers that activate when new files are uploaded to Azure Blob Storage.
-- Utilize the Blob Storage event grid to monitor for `BlobCreated` events, indicating new file uploads.
+- Set up: Created a Storage Service account, uploaded CSV files to Azure Blob Storage.
+- Configured ADF to use event-based triggers that activates when new files are uploaded to Azure Blob Storage.
+- Utilized the Blob Storage event grid to monitor for `BlobCreated`  events, indicating new file uploads.
 - Set up alerts in Azure Monitor to notify administrators if expected uploads do not occur as scheduled.
 
 **Ensuring Files Arrive in the Expected Formats**:
-- Initial Checks in ADF: Implement preliminary schema and format validations during the data ingestion phase.
-- Complex Validations in Azure Databricks: Use notebooks to execute more detailed validations, such as checking for correct data types, mandatory fields, and data integrity.
+- Initial Checks in ADF: Implement preliminary schema and format validations during the data ingestion phase. Null values and blanks for primary key fields are filtered out in this phase.
+- Complex Validations in Azure Databricks: Use notebooks to execute more detailed validations, such as checking for correct data types, mandatory fields, and referential data integrity.
 - Error Handling and Notifications: Configure error logging and automated notifications for files that fail validations.
 - Documentation and Continuous Improvement: Maintain detailed documentation of expected file formats and establish a feedback loop with data providers.
 
@@ -72,6 +72,10 @@ INSERT INTO stg.transactions
 SELECT *
 FROM staging_transactions;
 ```
+staging_transaction table is created for every new file --Delete old data and insert records from new file.
+Since we are sure of getting only new records, there is no need for overhead of merge, or checking for pre-existing records. Hence a straight insert is sufficient.
+
+
 
 **Scenario 2: New files contain new records, updated records, and unchanged records**
 
@@ -103,7 +107,7 @@ WHEN NOT MATCHED THEN INSERT (
     new.status
 );
 ```
-
+Merge statement handles updates for existing records, and inserts the new records.
 ### Managing Processed Files
 
 - Archive: Move processed files to an archival storage location, such as Azure Blob Storage with a cool or archive tier, to maintain a historical record while optimizing storage costs.
@@ -143,25 +147,25 @@ CREATE TABLE DataQualityLogs (
 );
 ```
 
-- **Notebooks**: Notebooks can also be used for automated and repeatable data quality checks, with the option of integrating visualizations.
+- **Notebooks**: Notebooks can also be used for automated and repeatable data quality checks, with the option of integrating visualizations and creating specialized dashboards.
 
 ### Reporting on Quality Checks
 
-Generate regular reports and dashboards using tools like Power BI to provide insights into the health of the data pipeline and data quality trends over time. Display key metrics, including pass/fail rates, types of errors found, and trends in data quality.
+Generate regular reports and dashboards using tools like Power BI to provide insights into the health of the data pipeline and data quality trends over time. Display key metrics, including pass/fail rates, types of errors found, and trends in data quality. Can leverage the data quality tables and meta data tables created in previous steps.
 
 ### Handling Failed Quality Checks
 
-1. **Isolation and Correction**: Move erroneous data to a separate quarantine area, where it can be analyzed and corrected. This prevents the propagation of poor-quality data through subsequent stages of the data pipeline.
+1. **Isolation and Correction**: Move erroneous data to a separate quarantine area, where it can be analyzed and corrected. This prevents the propagation of poor-quality data through subsequent stages of the data pipeline. Example: I created a table called `stg.loans_errors` to push erroneous records, which could be scheduled for alerting and potential reprocessing.
 2. **Notification and Manual Review**: Set up automated alerts to notify data engineers or relevant stakeholders when data fails quality checks. Provide tools and processes for manual review and correction of the data.
 3. **Reprocessing**: Once the data is corrected, it should be reprocessed through the pipeline to ensure it meets all quality standards before being used in downstream processes.
 
-Example: We created a table called `stg.loans_errors` to push erroneous records, which could be scheduled for reprocessing.
+
 
 ## 6. Data Pipeline Monitoring
 
 ### Monitoring Pipeline Activity
 
-- **Azure Monitor**: Set up alerts for metrics such as runtime duration, success rate, and failure rates. Configure alerts to notify you via email or SMS if certain thresholds are breached.
+- **Azure Monitor**: Set up alerts for metrics such as runtime duration, success rate, and failure rates. Configure alerts to notify  via email or pager duties or other sms services if certain thresholds are breached.
 - **ADF Monitoring**: Utilize the monitoring dashboard in ADF to get real-time insights into pipeline runs, activity failures, and performance bottlenecks.
 
 ### Ensuring Timely and Error-free Execution
@@ -172,3 +176,56 @@ Example: We created a table called `stg.loans_errors` to push erroneous records,
 ### Tracking Pipeline Run Information
 
 - **Logging**: Use Azure SQL Database to log details of each pipeline run, including start time,
+
+# Effective Data Pipeline Monitoring and Management
+
+Effective monitoring and management of data pipeline activities are crucial for ensuring reliability, performance, and timely data availability. Here's how you can set up and manage these aspects of your ETL/ELT processes:
+
+### **1. Monitoring Pipeline Activity**
+
+**Process**: Implement comprehensive monitoring using Azure Monitor along with Azure Data Factory's (ADF) built-in monitoring features. These tools allow you to track run history, performance, and the health of your pipelines.
+
+**Example**:
+
+- **Azure Monitor**: Set up alerts for metrics such as runtime duration, success rate, and failure rates. You can configure alerts to notify you via email or SMS if certain thresholds are breached.
+- **ADF Monitoring**: Utilize the monitoring dashboard in ADF to get real-time insights into pipeline runs, activity failures, and performance bottlenecks.
+
+### **2. Ensuring Pipelines Run According to Schedule**
+
+**Process**: Schedule pipelines in ADF using triggers that can be time-based (scheduled) or event-based (triggered by data arrival). Use dependency conditions to manage task sequences and ensure that pipelines execute in the correct order and at the right time.
+
+**Example**:
+
+- **Scheduled Trigger**: Set up a daily trigger in ADF to start the pipeline at a specific time each day.
+- **Dependency Conditions**: Configure pipeline activities with precedence constraints that ensure a downstream activity only starts if the upstream activities succeed.
+
+### **3. Tracking Information for Pipeline Runs**
+
+**Process**: Track key metrics for each pipeline run to facilitate debugging and optimization. Metrics can include start time, end time, duration, data volume processed, and success/failure status.
+
+**Example**:
+
+- **Logging**: Use Azure SQL Database to log details of each pipeline run. Here's a simple table structure for logging:
+
+ ```sql
+ CREATE TABLE PipelineRunLogs (
+   RunID INT PRIMARY KEY,
+   PipelineName VARCHAR(255),
+   StartTime DATETIME,
+   EndTime DATETIME,
+   DurationInSeconds INT,
+   Status VARCHAR(50),
+   ErrorMessage VARCHAR(MAX)
+ );
+
+### Error Handling in ADF: Use the "Retry" policy in ADF activities to automatically retry failed activities a specified number of times. For example:
+{
+  "policy": {
+    "timeout": "01:00:00",
+    "retry": 3,
+    "retryIntervalInSeconds": 30,
+    "secureOutput": false,
+    "secureInput": false
+  }
+}
+Tracking and Alerting: Using Azure Monitor to set up alerts based on logs or metrics that indicate failures. These alerts can help quickly pinpoint issues and initiate recovery processes.
