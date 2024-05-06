@@ -23,12 +23,12 @@ No uniqueness issues were identified, but null values were observed in primary k
 The id_string fields are currently defined as strings. Through verification using SQL queries, it has been observed that these values are in fact numeric and do not contain any special characters. Here are the queries used for verification:
 ```sql
 SELECT id_string
-FROM your_table
+FROM stg.customers
 WHERE id_string RLIKE '^[0-9]+$'  -- Checks for purely numeric
 LIMIT 10;
 
 SELECT id_string
-FROM your_table
+FROM stg.customers
 WHERE id_string RLIKE '^[A-Za-z0-9]+$' AND id_string RLIKE '[A-Za-z]'  -- Checks for alphanumeric
 LIMIT 10;
 ```
