@@ -50,9 +50,8 @@ Examples of code used for data quality checks will be provided from Databricks n
 - Transactions without `loan_id` or `transaction_id` are considered invalid.
 - Without a `loan_id`, a transaction cannot be tied to either a loan or a customer.
 
-### Assumptions
-
-- Common sense assumptions that transactions without `loan_id` or `transaction_id` are not valid.
+## Assumptions
+* Transactions without a `loan_id` or `transaction_id` are considered invalid. These values are required to link transactions to loans and customers. 
 - Without a `loan_id`, you cannot tie a transaction to either a loan or customer.
 
 ## 3. Data Modeling
