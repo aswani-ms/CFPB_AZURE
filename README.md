@@ -20,6 +20,21 @@ The dataset includes three entities: `customers`, `loans`, and `transactions`, a
 
 No uniqueness issues were identified, but null values were observed in primary keys for `loans` and `transactions`. These need to be filtered out during the data cleansing process. In the new schema, `id_strings` will be defined in each table as primary keys to prevent duplicate values.
 
+The id_string fields are currently defined as strings. Through verification using SQL queries, it has been observed that these values are in fact numeric and do not contain any special characters. Here are the queries used for verification:
+
+SELECT id_string
+FROM your_table
+WHERE id_string RLIKE '^[0-9]+$'  -- Checks for purely numeric
+LIMIT 10;
+
+SELECT id_string
+FROM your_table
+WHERE id_string RLIKE '^[A-Za-z0-9]+$' AND id_string RLIKE '[A-Za-z]'  -- Checks for alphanumeric
+LIMIT 10;
+
+Based on these findings, the id_string fields could potentially be converted to numeric types to improve performance. However, for the purposes of this exercise, they have been left as strings. This decision allows us to focus on other aspects of the dataset and avoids the complexities involved in altering the database schema at this stage
+
+
 ### Optimizing for Analysis
 
 - Create views for `transactions` and `loans` to view relevant information quickly.
